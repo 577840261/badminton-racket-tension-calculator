@@ -7,14 +7,112 @@
     <meta name="browsermode" content="application"> <!-- 微信浏览器应用模式 -->
     <meta name="theme-color" content="#4CAF50">
     <title>羽毛球拍磅数计算器</title>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <!-- 添加加载状态样式 -->
+    <style>
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255,255,255,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4299e1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text {
+            color: #4a5568;
+            font-size: 16px;
+        }
+        .error-message {
+            color: #e53e3e;
+            margin-top: 10px;
+            font-size: 14px;
+            display: none;
+        }
+    </style>
+    <!-- 优化资源加载策略 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" async defer onload="handleChartLoad()" onerror="handleResourceError('Chart.js')"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js" async defer onload="handleHtml2CanvasLoad()" onerror="handleResourceError('html2canvas')"></script>
+    <script>
+        // 资源加载状态跟踪
+        const resourceLoadState = {
+            chartjs: false,
+            html2canvas: false,
+            domContentLoaded: false
+        };
+        
+        // 资源加载完成处理函数
+        function handleChartLoad() { resourceLoadState.chartjs = true; checkAllResourcesLoaded(); }
+        function handleHtml2CanvasLoad() { resourceLoadState.html2canvas = true; checkAllResourcesLoaded(); }
+        
+        // DOM加载完成
+        document.addEventListener('DOMContentLoaded', function() {
+            resourceLoadState.domContentLoaded = true;
+            checkAllResourcesLoaded();
+        });
+        
+        // 检查所有关键资源是否加载完成
+        function checkAllResourcesLoaded() {
+            if (resourceLoadState.chartjs && resourceLoadState.html2canvas && resourceLoadState.domContentLoaded) {
+                // 所有资源加载完成，初始化应用
+                initApplication();
+            }
+        }
+        
+        // 资源加载错误处理
+        function handleResourceError(resourceName) {
+            const errorElement = document.querySelector('.error-message');
+            errorElement.textContent = `资源加载失败: ${resourceName}，正在尝试备用方案...`;
+            errorElement.style.display = 'block';
+            
+            // 尝试本地备用资源
+            if (resourceName === 'Chart.js') {
+                const script = document.createElement('script');
+                script.src = 'chart.min.js'; // 假设本地有备用文件
+                script.onload = handleChartLoad;
+                script.onerror = function() { showFatalError(`无法加载${resourceName}，请刷新页面重试`); };
+                document.head.appendChild(script);
+            }
+            // html2canvas错误处理类似
+        }
+        
+        // 显示致命错误
+        function showFatalError(message) {
+            const loadingOverlay = document.querySelector('.loading-overlay');
+            loadingOverlay.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="color: #e53e3e; font-size: 24px; margin-bottom: 15px;">⚠️</div>
+                    <div class="error-message">${message}</div>
+                    <button onclick="window.location.reload()" style="margin-top: 20px; padding: 10px 20px; background-color: #4299e1; color: white; border: none; border-radius: 4px;">重试</button>
+                </div>
+            `;
+        }
+    </script>
     <style>
         body {
             font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f0f2f5;
+            background: linear-gradient(135deg, #4299e1 0%, #38b2ac 100%);
+            background-attachment: fixed;
             color: #333;
         }
         .container {
@@ -29,12 +127,15 @@
     box-sizing: border-box; /* 添加盒模型计算方式 */
 }
         h1 {
-            color: #2c3e50;
+            background: linear-gradient(135deg, #3182ce 0%, #38b2ac 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 5px;
             font-weight: 700;
             font-size: 26px;
-            padding-bottom: 15px;
+            padding-bottom: 10px;
             border-bottom: 1px solid #edf2f7;
         }
         .input-section {
@@ -249,6 +350,17 @@
             font-weight: bold;
             margin-bottom: 10px;
         }
+        .developer-info {
+    text-align: center;
+    margin: 5px 0 10px;
+    padding: 6px 8px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 6px;
+    font-size: 12px;
+    color: #4a5568;
+    line-height: 1.3;
+    font-family: 'SimHei', 'Microsoft YaHei', sans-serif;
+}
         .comparison {
             display: flex;
             justify-content: space-between;
@@ -377,12 +489,148 @@
             height: auto !important;
         }
 
-    </style>
+        .share-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .share-modal.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .share-content {
+        background-color: white;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        transform: translateY(-20px);
+        transition: transform 0.3s ease;
+    }
+
+    .share-modal.active .share-content {
+    transform: translateY(0);
+}
+
+.share-buttons {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 25px;
+    padding: 0 15px 20px;
+}
+
+.share-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 15px 10px;
+    width: 85px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.share-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    border-color: transparent;
+}
+
+.share-button img {
+    width: 28px;
+    height: 28px;
+    margin-bottom: 8px;
+}
+
+.share-button span {
+    font-size: 14px;
+    color: #4a5568;
+}
+
+#saveImageBtn {
+    background-color: #4299e1;
+}
+
+#copyLinkBtn {
+    background-color: #38b2ac;
+}
+
+#closeShareBtn {
+    background-color: #a0aec0;
+}
+
+#saveImageBtn span,
+#copyLinkBtn span,
+#closeShareBtn span {
+    color: white;
+}
+
+.share-result-content {
+    padding: 20px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #2d3748;
+}
+
+.share-result-content h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #1a202c;
+    text-align: center;
+}
+
+.share-result-content p {
+    margin-bottom: 12px;
+}
+
+.share-result-content ul {
+    margin: 10px 0 15px 20px;
+}
+
+.share-result-content li {
+    margin-bottom: 6px;
+}
+
+.result-highlight {
+    font-weight: 600;
+    color: #3182ce;
+}
+
+</style>
 </head>
 <body>
+    <!-- 添加加载遮罩 -->
+    <div class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">加载中，请稍候...</div>
+        <div class="error-message"></div>
+    </div>
+    
     <div class="container">
         <h1>羽毛球拍磅数影响计算器</h1>
-        <div class="input-section">
+            <div class="developer-info">
+                <p>设计者：亍幵 古明月</p>
+                <p>开发者：亍幵（张鑫）</p>
+                <p>QQ: 1822520752（建议反馈）</p>
+            </div>
+            <div class="input-section">
             <div class="input-group input-icon">
                 <label for="weight">体重 (kg)</label>
                 <input type="number" id="weight" min="30" max="150" placeholder="请输入您的体重">
@@ -476,238 +724,303 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // 页面加载时显示历史记录
-        window.onload = function() {
-            displayHistory();
-            initChart();
-        };
+        // 应用初始化函数
+        function initApplication() {
+            try {
+                // 隐藏加载遮罩
+                const loadingOverlay = document.querySelector('.loading-overlay');
+                loadingOverlay.style.opacity = '0';
+                setTimeout(() => { loadingOverlay.style.display = 'none'; }, 500);
+                
+                // 执行原有的初始化逻辑
+                displayHistory();
+        initChart();
+        checkBrowserCompatibility();
+            } catch (error) {
+                console.error('应用初始化失败:', error);
+                showFatalError('应用初始化失败，请刷新页面重试');
+            }
+        }
         
         let performanceChart;
         
         function initChart() {
-            const ctx = document.getElementById('performanceChart').getContext('2d');
-            performanceChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30'],
-                    datasets: [{
-                        label: '杀球速度',
-                        data: [65, 68, 71, 74, 77, 80, 83, 86, 89, 92, 94, 95],
-                        borderColor: '#e57373',
-                        backgroundColor: 'rgba(229, 115, 115, 0.1)',
-                        tension: 0.3
-                    }, {
-                        label: '控球精度',
-                        data: [95, 93, 90, 87, 84, 80, 76, 72, 68, 64, 60, 55],
-                        borderColor: '#64b5f6',
-                        backgroundColor: 'rgba(100, 181, 246, 0.1)',
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false, /* 添加此项以允许自定义宽高比 */
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            min: 50,
-                            max: 100,
-                            title: {
-                                display: true,
-                                text: '性能评分',
-                                font: {
-                                    size: 12 /* 减小字体大小 */
-                                }
-                            },
-                            ticks: {
-                                font: {
-                                    size: 10 /* 减小刻度字体 */
-                                }
+    try {
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        // 检测屏幕尺寸设置基础字体大小
+        const baseFontSize = window.innerWidth < 600 ? 14 : 12;
+        const tickFontSize = window.innerWidth < 600 ? 13 : 10;
+        
+        performanceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30'],
+                datasets: [{
+                    label: '杀球速度',
+                    data: [65, 68, 71, 74, 77, 80, 83, 86, 89, 92, 94, 95],
+                    borderColor: '#e57373',
+                    backgroundColor: 'rgba(229, 115, 115, 0.1)',
+                    tension: 0.3
+                }, {
+                    label: '控球精度',
+                    data: [95, 93, 90, 87, 84, 80, 76, 72, 68, 64, 60, 55],
+                    borderColor: '#64b5f6',
+                    backgroundColor: 'rgba(100, 181, 246, 0.1)',
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 50,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: '性能评分',
+                            font: {
+                                size: baseFontSize  // 使用响应式基础字体大小
                             }
                         },
-                        x: {
-                            title: {
-                                display: true,
-                                text: '磅数',
-                                font: {
-                                    size: 12
-                                }
-                            },
-                            ticks: {
-                                font: {
-                                    size: 10
-                                }
+                        ticks: {
+                            font: {
+                                size: tickFontSize  // 使用响应式刻度字体大小
                             }
                         }
                     },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                font: {
-                                    size: 11 /* 减小图例字体 */
-                                }
+                    x: {
+                        title: {
+                            display: true,
+                            text: '磅数',
+                            font: {
+                                size: baseFontSize
                             }
-                        }
-                    },
-                    // 添加屏幕尺寸检测，动态调整图表高度
-                    onResize: function(chart) {
-                        const screenWidth = window.innerWidth;
-                        if (screenWidth < 600) {
-                            chart.options.plugins.legend.position = 'bottom';
-                            chart.options.layout.padding = 10;
-                        } else {
-                            chart.options.plugins.legend.position = 'top';
-                            chart.options.layout.padding = 20;
+                        },
+                        ticks: {
+                            font: {
+                                size: tickFontSize,
+                                weight: 'bold'  // 增加磅数刻度的粗体效果
+                            }
                         }
                     }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            font: {
+                                size: window.innerWidth < 600 ? 13 : 11
+                            }
+                        }
+                    }
+                },
+                onResize: function(chart) {
+                    const screenWidth = window.innerWidth;
+                    if (screenWidth < 600) {
+                        chart.options.plugins.legend.position = 'bottom';
+                        chart.options.layout.padding = 10;
+                    } else {
+                        chart.options.plugins.legend.position = 'top';
+                        chart.options.layout.padding = 20;
+                    }
+                    
+                    // 动态调整字体大小
+                    const newBaseSize = screenWidth < 600 ? 14 : 12;
+                    const newTickSize = screenWidth < 600 ? 13 : 10;
+                    
+                    chart.options.scales.y.title.font.size = newBaseSize;
+                    chart.options.scales.y.ticks.font.size = newTickSize;
+                    chart.options.scales.x.title.font.size = newBaseSize;
+                    chart.options.scales.x.ticks.font.size = newTickSize;
+                    chart.options.plugins.legend.labels.font.size = screenWidth < 600 ? 13 : 11;
                 }
-            });
+            }
+        });
+    } catch (error) {
+        console.error('图表初始化失败:', error);
+        // 显示友好错误信息，但不阻断其他功能
+        const chartContainer = document.querySelector('.chart-section');
+        chartContainer.innerHTML = '<div style="text-align:center;padding:20px;color:#e53e3e;">图表加载失败，不影响核心功能使用</div>';
+    }
+}
+
+// 添加浏览器特性检测
+function checkBrowserCompatibility() {
+    const compatibilityIssues = [];
+    
+    if (!window.Promise) compatibilityIssues.push('Promise API');
+    if (!window.fetch) compatibilityIssues.push('Fetch API');
+    if (!HTMLCanvasElement.prototype.toBlob) compatibilityIssues.push('Canvas.toBlob');
+    if (!window.URL || !window.URL.createObjectURL) compatibilityIssues.push('URL API');
+    
+    if (compatibilityIssues.length > 0) {
+        console.warn('浏览器兼容性问题:', compatibilityIssues);
+        // 仅在发现严重兼容性问题时显示提示
+        if (compatibilityIssues.includes('Promise API') || compatibilityIssues.includes('Canvas.toBlob')) {
+            const loadingOverlay = document.querySelector('.loading-overlay');
+            if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+                loadingOverlay.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="color: #e53e3e; font-size: 24px; margin-bottom: 15px;">⚠️</div>
+                        <div class="error-message">您的浏览器版本过低，部分功能可能无法正常使用</div>
+                        <button onclick="window.location.reload()" style="margin-top: 20px; padding: 10px 20px; background-color: #4299e1; color: white; border: none; border-radius: 4px;">继续使用</button>
+                    </div>
+                `;
+            }
         }
+    }
+}
 
         function calculatePounds() {
-            const weight = parseFloat(document.getElementById('weight').value);
-    const height = parseFloat(document.getElementById('height').value);
-    const skillLevel = document.getElementById('skillLevel').value;
-    const strength = document.getElementById('strength').value;
-    const playStyle = document.getElementById('playStyle').value;
-    const resultSection = document.getElementById('resultSection');
-    const poundRange = document.getElementById('poundRange');
-    const smashIncrease = document.getElementById('smashIncrease');
-    const smashEffect = document.getElementById('smashEffect');
-    const controlEffect = document.getElementById('controlEffect');
-    const weightInput = document.getElementById('weight');
+    try {
+        const weight = parseFloat(document.getElementById('weight').value);
+        const height = parseFloat(document.getElementById('height').value);
+        const skillLevel = document.getElementById('skillLevel').value;
+        const strength = document.getElementById('strength').value;
+        const playStyle = document.getElementById('playStyle').value;
+        const resultSection = document.getElementById('resultSection');
+        const poundRange = document.getElementById('poundRange');
+        const smashIncrease = document.getElementById('smashIncrease');
+        const smashEffect = document.getElementById('smashEffect');
+        const controlEffect = document.getElementById('controlEffect');
+        const weightInput = document.getElementById('weight');
 
-            // 增强输入验证
-    if (isNaN(weight) || weight < 30 || weight > 150 || isNaN(height) || height < 120 || height > 220) {
-        // 高亮显示无效输入
-        if (isNaN(weight) || weight < 30 || weight > 150) {
-            weightInput.style.border = '2px solid #e57373';
+        // 增强输入验证
+        if (isNaN(weight) || weight < 30 || weight > 150 || isNaN(height) || height < 120 || height > 220) {
+            // 高亮显示无效输入
+            if (isNaN(weight) || weight < 30 || weight > 150) {
+                weightInput.style.border = '2px solid #e57373';
+            }
+            if (isNaN(height) || height < 120 || height > 220) {
+                document.getElementById('height').style.border = '2px solid #e57373';
+            }
+            setTimeout(() => {
+                weightInput.style.border = '1px solid #ddd';
+                document.getElementById('height').style.border = '1px solid #ddd';
+            }, 2000);
+            return;
         }
-        if (isNaN(height) || height < 120 || height > 220) {
-            document.getElementById('height').style.border = '2px solid #e57373';
-        }
-        setTimeout(() => {
-            weightInput.style.border = '1px solid #ddd';
-            document.getElementById('height').style.border = '1px solid #ddd';
-        }, 2000);
-        return;
-    }
 
-            // 基础磅数推荐逻辑 - 整合身高因素
-            const bmi = weight / ((height / 100) ** 2); // 计算BMI
-            let baseMin, baseMax, increase;
+        // 基础磅数推荐逻辑 - 整合身高因素
+        const bmi = weight / ((height / 100) ** 2); // 计算BMI
+        let baseMin, baseMax, increase;
 
-            // 根据BMI和体重综合计算基础磅数
-            if (bmi >= 18.5 && bmi <= 24.9) {
-                // 正常BMI范围
-                if (weight >= 60 && weight <= 70) {
-                    baseMin = 24;
-                    baseMax = 26;
-                    increase = "12%";
-                } else if (weight < 60) {
-                    baseMin = 22;
-                    baseMax = 24;
-                    increase = "10%";
-                } else { // weight > 70
-                    baseMin = 26;
-                    baseMax = 28;
-                    increase = "14%";
-                }
-            } else if (bmi < 18.5) {
-                // 较低BMI，适当降低基础磅数
-                if (weight < 60) {
-                    baseMin = 21;
-                    baseMax = 23;
-                    increase = "9%";
-                } else {
-                    baseMin = 23;
-                    baseMax = 25;
-                    increase = "11%";
-                }
-            } else { // bmi > 24.9
-                // 较高BMI，适当提高基础磅数
-                baseMin = 25;
-                baseMax = 27;
-                increase = "13%";
+        // 根据BMI和体重综合计算基础磅数
+        if (bmi >= 18.5 && bmi <= 24.9) {
+            // 正常BMI范围
+            if (weight >= 60 && weight <= 70) {
+                baseMin = 24;
+                baseMax = 26;
+                increase = "12%";
+            } else if (weight < 60) {
+                baseMin = 22;
+                baseMax = 24;
+                increase = "10%";
+            } else { // weight > 70
+                baseMin = 26;
+                baseMax = 28;
+                increase = "14%";
             }
-
-            // 根据技术水平调整
-            if (skillLevel === 'beginner') {
-                baseMin -= 2;
-                baseMax -= 1;
-            } else if (skillLevel === 'advanced') {
-                baseMin += 1;
-                baseMax += 2;
-            }
-
-            // 根据力量级别调整
-            if (strength === 'low') {
-                baseMin -= 1;
-                baseMax -= 1;
-            } else if (strength === 'high') {
-                baseMin += 1;
-                baseMax += 1;
-            }
-
-            // 根据击球风格调整
-            if (playStyle === 'offensive') {
-                baseMin += 1;
-                baseMax += 1;
-                increase = (parseInt(increase) + 2) + '%';
-            } else if (playStyle === 'defensive') {
-                baseMin -= 1;
-                baseMax -= 1;
-            }
-
-            // 设置结果
-            poundRange.textContent = `${baseMin}-${baseMax} 磅`;
-            smashIncrease.textContent = `+${increase}`;
-
-            // 设置效果描述
-            if (baseMin >= 26) {
-                smashEffect.textContent = "优秀 (高磅数提供更快的杀球速度)";
-                controlEffect.textContent = "中等 (需要更多力量控制球路)";
-                
-                if (skillLevel === 'advanced' && strength === 'high') {
-                    stringingAdvice.textContent = "专业级推荐：四结穿线法+预拉15%，竖线28-30磅，横线30-32磅的错磅穿线，提升线床稳定性和击球反馈。建议使用硬线如聚酯线，提高耐打性。";
-                } else if (skillLevel === 'intermediate' && strength === 'medium') {
-                    stringingAdvice.textContent = "进阶级推荐：四结穿线法+预拉10%，竖线比横线高1磅的错磅穿线，平衡线床张力与弹性。建议使用复合线，兼顾控制与耐用。";
-                } else {
-                    stringingAdvice.textContent = "高磅基础方案：标准四结穿线法，预拉8%，线床磅数均匀分布。建议逐步适应高磅数，初次尝试选择范围下限值。";
-                }
-            } else if (baseMin <= 23) {
-                smashEffect.textContent = "中等 (低磅数杀球速度适中)";
-                controlEffect.textContent = "优秀 (更容易控制球路和落点)";
-                
-                if (skillLevel === 'beginner') {
-                    stringingAdvice.textContent = "新手入门方案：两结穿线法，无需预拉，推荐尼龙线或复合线，磅数选择范围中间值，减少手臂负担。";
-                } else if (playStyle === 'defensive') {
-                    stringingAdvice.textContent = "防守型推荐：两结穿线法，竖线比横线低1磅，增加线床弹性和持球感，适合控球型打法。建议使用高弹性线。";
-                } else {
-                    stringingAdvice.textContent = "低磅通用方案：标准两结穿线法，线床磅数均匀，推荐多股线，提升击球舒适度和弹性反馈。";
-                }
+        } else if (bmi < 18.5) {
+            // 较低BMI，适当降低基础磅数
+            if (weight < 60) {
+                baseMin = 21;
+                baseMax = 23;
+                increase = "9%";
             } else {
-                smashEffect.textContent = "良好 (平衡的杀球速度)";
-                controlEffect.textContent = "良好 (平衡的控球能力)";
-                
-                // 中磅数细分场景推荐
-                if (skillLevel === 'advanced' && playStyle === 'offensive') {
-                    stringingAdvice.textContent = "高级进攻方案：四结穿线法，竖线26-27磅，横线27-28磅错磅穿线，预拉10%，提升杀球爆发力。建议使用聚酯线。";
-                } else if (skillLevel === 'intermediate' && strength === 'medium') {
-                    stringingAdvice.textContent = "中级平衡方案：四结穿线法，竖线横线同磅，预拉5%，适合大多数中级选手。建议使用复合线，兼顾各项性能。";
-                } else if (strength === 'low' && playStyle === 'balanced') {
-                    stringingAdvice.textContent = "力量优化方案：四结穿线法，竖线比横线低1磅，减少击球力量需求，提升控球稳定性。建议使用高弹性线。";
-                } else {
-                    stringingAdvice.textContent = "中磅通用方案：标准四结穿线法，磅数选择范围中间值，预拉5%，适合技术全面的选手。";
-                }
+                baseMin = 23;
+                baseMax = 25;
+                increase = "11%";
             }
-
-            // 显示结果区域
-            resultSection.style.display = 'block';
-
-            // 保存历史记录
-            saveHistory(weight, height, skillLevel, strength, playStyle, `${baseMin}-${baseMax} 磅`);
+        } else { // bmi > 24.9
+            // 较高BMI，适当提高基础磅数
+            baseMin = 25;
+            baseMax = 27;
+            increase = "13%";
         }
+
+        // 根据技术水平调整
+        if (skillLevel === 'beginner') {
+            baseMin -= 2;
+            baseMax -= 1;
+        } else if (skillLevel === 'advanced') {
+            baseMin += 1;
+            baseMax += 2;
+        }
+
+        // 根据力量级别调整
+        if (strength === 'low') {
+            baseMin -= 1;
+            baseMax -= 1;
+        } else if (strength === 'high') {
+            baseMin += 1;
+            baseMax += 1;
+        }
+
+        // 根据击球风格调整
+        if (playStyle === 'offensive') {
+            baseMin += 1;
+            baseMax += 1;
+            increase = (parseInt(increase) + 2) + '%';
+        } else if (playStyle === 'defensive') {
+            baseMin -= 1;
+            baseMax -= 1;
+        }
+
+        // 设置结果
+        poundRange.textContent = `${baseMin}-${baseMax} 磅`;
+        smashIncrease.textContent = `+${increase}`;
+
+        // 设置效果描述
+        if (baseMin >= 26) {
+            smashEffect.textContent = "优秀 (高磅数提供更快的杀球速度)";
+            controlEffect.textContent = "中等 (需要更多力量控制球路)";
+            
+            if (skillLevel === 'advanced' && strength === 'high') {
+                stringingAdvice.textContent = "专业级推荐：四结穿线法+预拉15%，竖线28-30磅，横线30-32磅的错磅穿线，提升线床稳定性和击球反馈。建议使用硬线如聚酯线，提高耐打性。";
+            } else if (skillLevel === 'intermediate' && strength === 'medium') {
+                stringingAdvice.textContent = "进阶级推荐：四结穿线法+预拉10%，竖线比横线高1磅的错磅穿线，平衡线床张力与弹性。建议使用复合线，兼顾控制与耐用。";
+            } else {
+                stringingAdvice.textContent = "高磅基础方案：标准四结穿线法，预拉8%，线床磅数均匀分布。建议逐步适应高磅数，初次尝试选择范围下限值。";
+            }
+        } else if (baseMin <= 23) {
+            smashEffect.textContent = "中等 (低磅数杀球速度适中)";
+            controlEffect.textContent = "优秀 (更容易控制球路和落点)";
+            
+            if (skillLevel === 'beginner') {
+                stringingAdvice.textContent = "新手入门方案：两结穿线法，无需预拉，推荐尼龙线或复合线，磅数选择范围中间值，减少手臂负担。";
+            } else if (playStyle === 'defensive') {
+                stringingAdvice.textContent = "防守型推荐：两结穿线法，竖线比横线低1磅，增加线床弹性和持球感，适合控球型打法。建议使用高弹性线。";
+            } else {
+                stringingAdvice.textContent = "低磅通用方案：标准两结穿线法，线床磅数均匀，推荐多股线，提升击球舒适度和弹性反馈。";
+            }
+        } else {
+            smashEffect.textContent = "良好 (平衡的杀球速度)";
+            controlEffect.textContent = "良好 (平衡的控球能力)";
+            
+            // 中磅数细分场景推荐
+            if (skillLevel === 'advanced' && playStyle === 'offensive') {
+                stringingAdvice.textContent = "高级进攻方案：四结穿线法，竖线26-27磅，横线27-28磅错磅穿线，预拉10%，提升杀球爆发力。建议使用聚酯线。";
+            } else if (skillLevel === 'intermediate' && strength === 'medium') {
+                stringingAdvice.textContent = "中级平衡方案：四结穿线法，竖线横线同磅，预拉5%，适合大多数中级选手。建议使用复合线，兼顾各项性能。";
+            } else if (strength === 'low' && playStyle === 'balanced') {
+                stringingAdvice.textContent = "力量优化方案：四结穿线法，竖线比横线低1磅，减少击球力量需求，提升控球稳定性。建议使用高弹性线。";
+            } else {
+                stringingAdvice.textContent = "中磅通用方案：标准四结穿线法，磅数选择范围中间值，预拉5%，适合技术全面的选手。";
+            }
+        }
+
+        // 显示结果区域
+        resultSection.style.display = 'block';
+
+        // 保存历史记录
+        saveHistory(weight, height, skillLevel, strength, playStyle, `${baseMin}-${baseMax} 磅`);
+    } catch (error) {
+        console.error('计算功能出错:', error);
+        alert('计算过程中出现错误，请重试');
+    }
+}
 
         // 保存历史记录到localStorage
         function saveHistory(weight, height, skillLevel, strength, playStyle, poundRange) {
@@ -730,18 +1043,19 @@
             const heightValue = document.getElementById('height').value + 'cm';
 
             const history = JSON.parse(localStorage.getItem('badmintonHistory') || '[]');
-            history.push({
-                date: new Date().toLocaleString(),
-                weight: weight + 'kg',
-                height: heightValue,
-                skillLevel: skillLevelText,
-                strength: strengthText,
-                playStyle: playStyleText,
-                poundRange: poundRange
-            });
+        // 将新记录添加到数组开头而非末尾
+        history.unshift({
+            date: new Date().toLocaleString(),
+            weight: weight + 'kg',
+            height: heightValue,
+            skillLevel: skillLevelText,
+            strength: strengthText,
+            playStyle: playStyleText,
+            poundRange: poundRange
+        });
 
-            // 只保留最近10条记录
-            if (history.length > 10) history.shift();
+        // 只保留最近10条记录，移除最旧的记录而非最新的
+        if (history.length > 10) history.pop();
 
             localStorage.setItem('badmintonHistory', JSON.stringify(history));
             displayHistory();
@@ -759,19 +1073,20 @@
 
             historyList.innerHTML = '';
             history.forEach((item, index) => {
-                const historyItem = document.createElement('div');
-                historyItem.className = 'history-item';
-                historyItem.innerHTML = `
-                    <div>
-                        <strong>${item.date}</strong><br>
-                        体重: ${item.weight}, 身高: ${item.height}, 技术: ${item.skillLevel}<br>
-                        力量: ${item.strength}, 风格: ${item.playStyle}<br>
-                        推荐磅数: ${item.poundRange}
-                    </div>
-                    <button class="delete-btn" onclick="deleteHistoryItem(${index})">删除</button>
-                `;
-                historyList.appendChild(historyItem);
-            });
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            // 添加时间戳样式区分新旧记录
+            historyItem.innerHTML = `
+                <div style="${index === 0 ? 'border-left: 3px solid #4299e1;' : ''}">
+                    <strong>${item.date}</strong>${index === 0 ? ' <span style="color: #4299e1; font-size: 12px;">(最新)</span>' : ''}<br>
+                    体重: ${item.weight}, 身高: ${item.height}, 技术: ${item.skillLevel}<br>
+                    力量: ${item.strength}, 风格: ${item.playStyle}<br>
+                    推荐磅数: ${item.poundRange}
+                </div>
+                <button class="delete-btn" onclick="deleteHistoryItem(${index})">删除</button>
+            `;
+            historyList.appendChild(historyItem);
+        });
         }
 
         function getPersonalRecommendation() {
@@ -785,12 +1100,12 @@
         }
 
         // 删除单条历史记录
-        function deleteHistoryItem(index) {
-            const history = JSON.parse(localStorage.getItem('badmintonHistory') || '[]');
-            history.splice(index, 1); // 移除指定索引的记录
-            localStorage.setItem('badmintonHistory', JSON.stringify(history));
-            displayHistory(); // 重新渲染历史记录
-        }
+function deleteHistoryItem(index) {
+    const history = JSON.parse(localStorage.getItem('badmintonHistory') || '[]');
+    history.splice(index, 1); // 索引现在直接对应显示顺序
+    localStorage.setItem('badmintonHistory', JSON.stringify(history));
+    displayHistory(); // 重新渲染历史记录
+}
 
         // 清空所有历史记录
         function clearAllHistory() {
@@ -802,55 +1117,60 @@
 
         // 添加分享功能核心实现
         function shareResult() {
-            const poundRange = document.getElementById('poundRange').textContent;
-            const smashEffect = document.getElementById('smashEffect').textContent;
-            const controlEffect = document.getElementById('controlEffect').textContent;
-            const smashIncrease = document.getElementById('smashIncrease').textContent;
-            
-            // 构建包含关键指标的分享文本
-            const text = `我的羽毛球拍磅数推荐为${poundRange}，杀球速度增幅${smashIncrease}。杀球效果：${smashEffect}，控球效果：${controlEffect}。点击查看详细分析。`;
+    try {
+        const poundRange = document.getElementById('poundRange').textContent;
+        const smashEffect = document.getElementById('smashEffect').textContent;
+        const controlEffect = document.getElementById('controlEffect').textContent;
+        const smashIncrease = document.getElementById('smashIncrease').textContent;
+        
+        // 构建包含关键指标的分享文本
+        const text = `我的羽毛球拍磅数推荐为${poundRange}，杀球速度增幅${smashIncrease}。杀球效果：${smashEffect}，控球效果：${controlEffect}。点击查看详细分析。`;
     
-    // 添加浏览器兼容性提示
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isWeChat = userAgent.includes('micromessenger');
-    const isQQ = userAgent.includes('qq/');
+        // 添加浏览器兼容性提示
+        const userAgent = navigator.userAgent.toLowerCase();
+        const isWeChat = userAgent.includes('micromessenger');
+        const isQQ = userAgent.includes('qq/');
 
-    if (isWeChat || isQQ) {
-        const shareTips = document.createElement('div');
-        shareTips.style.position = 'fixed';
-        shareTips.style.bottom = '20px';
-        shareTips.style.left = '50%';
-        shareTips.style.transform = 'translateX(-50%)';
-        shareTips.style.backgroundColor = 'rgba(0,0,0,0.7)';
-        shareTips.style.color = 'white';
-        shareTips.style.padding = '10px 15px';
-        shareTips.style.borderRadius = '4px';
-        shareTips.style.zIndex = '1000';
-        shareTips.textContent = isWeChat ? '微信内支持长按图片保存' : 'QQ内支持长按图片保存';
-        document.body.appendChild(shareTips);
+        if (isWeChat || isQQ) {
+            const shareTips = document.createElement('div');
+            shareTips.style.position = 'fixed';
+            shareTips.style.bottom = '20px';
+            shareTips.style.left = '50%';
+            shareTips.style.transform = 'translateX(-50%)';
+            shareTips.style.backgroundColor = 'rgba(0,0,0,0.7)';
+            shareTips.style.color = 'white';
+            shareTips.style.padding = '10px 15px';
+            shareTips.style.borderRadius = '4px';
+            shareTips.style.zIndex = '1000';
+            shareTips.textContent = isWeChat ? '微信内支持长按图片保存' : 'QQ内支持长按图片保存';
+            document.body.appendChild(shareTips);
 
-        setTimeout(() => {
-            shareTips.style.opacity = '0';
-            shareTips.style.transition = 'opacity 0.5s';
-            setTimeout(() => shareTips.remove(), 500);
-        }, 3000);
-    }
-
-    // 检查浏览器是否支持Web Share API
-    if (navigator.share) {
-                navigator.share({
-                    title: '羽毛球拍磅数推荐',
-                    text: text,
-                    url: window.location.href
-                }).catch(error => {
-                    console.error('Web Share API 分享失败:', error);
-                    shareWithImageFallback(text); // 失败时使用备选方案
-                });
-            } else {
-                // 不支持Web Share API时直接使用图片分享备选方案
-                shareWithImageFallback(text);
-            }
+            setTimeout(() => {
+                shareTips.style.opacity = '0';
+                shareTips.style.transition = 'opacity 0.5s';
+                setTimeout(() => shareTips.remove(), 500);
+            }, 3000);
         }
+
+        // 检查浏览器是否支持Web Share API
+        if (navigator.share) {
+            navigator.share({
+                title: '羽毛球拍磅数推荐',
+                text: text,
+                url: window.location.href
+            }).catch(error => {
+                console.error('Web Share API 分享失败:', error);
+                shareWithImageFallback(text); // 失败时使用备选方案
+            });
+        } else {
+            // 不支持Web Share API时直接使用图片分享备选方案
+            shareWithImageFallback(text);
+        }
+    } catch (error) {
+        console.error('分享功能出错:', error);
+        alert('分享功能暂时不可用，请稍后重试');
+    }
+}
 
         // 图片分享备选方案
         function shareWithImageFallback(text) {
@@ -1000,56 +1320,62 @@
         let isSavingImage = false;
         
         function saveAsImage() {
-        // 检查是否正在保存中，如果是则阻止重复点击
-        if (isSavingImage) {
+    // 检查是否支持必要API
+    if (!window.html2canvas || !HTMLCanvasElement.prototype.toBlob) {
+        alert('您的浏览器不支持图片保存功能，请使用最新版浏览器');
+        return;
+    }
+    
+    // 检查是否正在保存中，如果是则阻止重复点击
+    if (isSavingImage) {
         alert('图片正在生成中，请稍候...');
         return;
-        }
-        
-        const resultSection = document.getElementById('resultSection');
-        const poundRange = document.getElementById('poundRange').textContent;
-        
-        // 检查结果区域是否显示
-        if (resultSection.style.display === 'none') {
+    }
+    
+    const resultSection = document.getElementById('resultSection');
+    const poundRange = document.getElementById('poundRange').textContent;
+    
+    // 检查结果区域是否显示
+    if (resultSection.style.display === 'none') {
         alert('请先计算磅数，再保存结果图片');
         return;
-        }
-        
-        // 设置状态为正在保存
-        isSavingImage = true;
-        
-        // 创建结果区域的克隆，用于图片生成
-        const clonedSection = resultSection.cloneNode(true);
-        // 移除克隆中的按钮区域
-        const buttonContainer = clonedSection.querySelector('div[style*="margin-top: 15px; text-align: center;"]');
-        if (buttonContainer) {
+    }
+    
+    // 设置状态为正在保存
+    isSavingImage = true;
+    
+    // 创建结果区域的克隆，用于图片生成
+    const clonedSection = resultSection.cloneNode(true);
+    // 移除克隆中的按钮区域
+    const buttonContainer = clonedSection.querySelector('div[style*="margin-top: 15px; text-align: center;"]');
+    if (buttonContainer) {
         buttonContainer.remove();
-        }
-        
-        // 调整克隆区域的样式，限制宽度并减少空白
-        clonedSection.style.padding = '15px';
-        clonedSection.style.margin = '0 auto';
-        clonedSection.style.boxShadow = 'none';
-        clonedSection.style.width = 'auto';
-        clonedSection.style.maxWidth = '500px';
-        clonedSection.style.display = 'block';
-        clonedSection.style.overflow = 'hidden';
-        
-        // 调整比较卡片布局
-        const comparisonCards = clonedSection.querySelectorAll('.comparison-card');
-        comparisonCards.forEach(card => {
+    }
+    
+    // 调整克隆区域的样式，限制宽度并减少空白
+    clonedSection.style.padding = '15px';
+    clonedSection.style.margin = '0 auto';
+    clonedSection.style.boxShadow = 'none';
+    clonedSection.style.width = 'auto';
+    clonedSection.style.maxWidth = '500px';
+    clonedSection.style.display = 'block';
+    clonedSection.style.overflow = 'hidden';
+    
+    // 调整比较卡片布局
+    const comparisonCards = clonedSection.querySelectorAll('.comparison-card');
+    comparisonCards.forEach(card => {
         card.style.width = '48%';
         card.style.boxSizing = 'border-box';
-        });
-        
-        // 将克隆元素添加到文档中（但不可见）
-        clonedSection.style.position = 'absolute';
-        clonedSection.style.top = '-9999px';
-        clonedSection.style.left = '-9999px';
-        document.body.appendChild(clonedSection);
-        
-        // 使用html2canvas将调整后的克隆区域转换为图片
-        html2canvas(clonedSection, {
+    });
+    
+    // 将克隆元素添加到文档中（但不可见）
+    clonedSection.style.position = 'absolute';
+    clonedSection.style.top = '-9999px';
+    clonedSection.style.left = '-9999px';
+    document.body.appendChild(clonedSection);
+    
+    // 使用html2canvas时增加超时处理
+    const canvasPromise = html2canvas(clonedSection, {
         scale: 4,
         useCORS: true,
         allowTaint: true,
@@ -1065,35 +1391,62 @@
         y: 0,
         width: clonedSection.offsetWidth,
         height: clonedSection.offsetHeight
-        }).then(canvas => {
-        // 清理克隆元素
-        document.body.removeChild(clonedSection);
-        
-        if(canvas.width < 200 || canvas.height < 200) {
-        throw new Error('截图尺寸异常: ' + canvas.width + 'x' + canvas.height);
-        }
-        
-        const link = document.createElement('a');
-        const cleanPoundRange = poundRange.replace(/[^0-9-]/g, '');
-        link.download = `羽毛球拍磅数推荐_${cleanPoundRange || '未知'}.png`;
-        link.href = canvas.toDataURL('image/png');
-        
-        if(link.href.startsWith('data:image/png')) {
-        link.click();
-        } else {
-        throw new Error('生成的图片数据无效');
-        }
-        }).catch(error => {
-        if(clonedSection && clonedSection.parentNode) {
-        document.body.removeChild(clonedSection);
-        }
-        console.error('保存图片失败:', error);
-        alert('保存图片失败: ' + error.message);
-        }).finally(() => {
-        // 无论成功失败，都重置状态标志
-        isSavingImage = false;
+    });
+    
+    // 添加超时处理
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('图片生成超时')), 15000);
+    });
+    
+    Promise.race([canvasPromise, timeoutPromise])
+        .then(canvas => {
+            // 清理克隆元素
+            document.body.removeChild(clonedSection);
+            
+            if(canvas.width < 200 || canvas.height < 200) {
+                throw new Error('截图尺寸异常: ' + canvas.width + 'x' + canvas.height);
+            }
+            
+            // 优先使用blob格式替代dataURL，提升兼容性
+            canvas.toBlob(blob => {
+                if (!blob) throw new Error('无法生成图片数据');
+                
+                const url = URL.createObjectURL(blob);
+                const cleanPoundRange = poundRange.replace(/[^0-9-]/g, '');
+                const filename = `羽毛球拍磅数推荐_${cleanPoundRange || '未知'}.png`;
+                
+                downloadImage(url, filename);
+                
+                // 释放资源
+                setTimeout(() => URL.revokeObjectURL(url), 10000);
+            }, 'image/png', 0.9); // 添加图片质量参数
+        })
+        .catch(error => {
+            // 确保资源总是被清理
+            if(clonedSection && clonedSection.parentNode) {
+                document.body.removeChild(clonedSection);
+            }
+            console.error('保存图片失败:', error);
+            // 根据不同错误类型提供具体解决方案
+            let errorMsg = '保存失败: ';
+            if (error.message.includes('尺寸异常')) {
+                errorMsg += '页面内容加载不完整，请稍后重试';
+            } else if (error.message.includes('图片数据')) {
+                errorMsg += '无法生成图片，请检查网络后重试';
+            } else if (error.message.includes('超时')) {
+                errorMsg += '图片生成超时，请检查网络或尝试降低浏览器缩放比例';
+            } else if (error.message.includes('不支持')) {
+                errorMsg += '您的浏览器不支持此功能，请升级浏览器';
+            } else {
+                errorMsg += error.message;
+            }
+            alert(errorMsg);
+        })
+        .finally(() => {
+            // 确保资源总是被清理
+            isSavingImage = false;
         });
-        }
+}
         
         function downloadImage(url, filename) {
     // 检测浏览器环境
@@ -1104,39 +1457,55 @@
 
     // 微信内置浏览器特殊处理
     if (isWeChat) {
-        try {
-            // 尝试使用微信图片预览API
-            if (typeof WeixinJSBridge !== 'undefined') {
-                WeixinJSBridge.invoke('imagePreview', {
-                    current: url,
-                    urls: [url]
-                });
-                setTimeout(() => {
-                    alert('请长按图片选择"保存图片"');
-                }, 500);
-                return;
+            try {
+                // 微信浏览器特殊处理：先检测WeixinJSBridge是否加载完成
+                if (typeof WeixinJSBridge === 'undefined') {
+                    // 如果WeixinJSBridge未加载，监听事件并延迟执行
+                    document.addEventListener('WeixinJSBridgeReady', function() {
+                        openWeChatImagePreview(url);
+                    }, false);
+                    return;
+                }
+                openWeChatImagePreview(url);
+            } catch (e) {
+                console.error('微信图片处理失败:', e);
+                // 微信环境下的备选方案
+                alert('微信保存失败，请点击右上角菜单选择"在浏览器中打开"后重试');
             }
-        } catch (e) {
-            console.error('微信图片预览失败:', e);
         }
-    }
 
     // QQ浏览器特殊处理
     if (isQQ && isMobile) {
-        // 创建隐藏的图片元素用于预览
+        // 创建更友好的QQ浏览器预览界面
+        const previewContainer = document.createElement('div');
+        previewContainer.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:99999;display:flex;flex-direction:column';
+        
+        const previewHeader = document.createElement('div');
+        previewHeader.style.cssText = 'height:44px;display:flex;justify-content:space-between;align-items:center;padding:0 15px;color:white';
+        previewHeader.innerHTML = '<span>图片预览</span><button style="background:#4299e1;border:none;color:white;padding:5px 10px;border-radius:4px;font-size:14px">保存图片</button>';
+        
         const img = document.createElement('img');
         img.src = url;
-        img.style.position = 'fixed';
-        img.style.top = '0';
-        img.style.left = '0';
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.objectFit = 'contain';
-        img.style.backgroundColor = 'white';
-        img.style.zIndex = '99999';
-        img.onclick = () => img.remove();
-        document.body.appendChild(img);
-        alert('点击图片可关闭预览\n请长按图片保存到相册');
+        img.style.cssText = 'flex:1;object-fit:contain;background:white';
+        img.onclick = () => document.body.removeChild(previewContainer);
+        
+        const previewFooter = document.createElement('div');
+        previewFooter.style.cssText = 'height:30px;color:white;text-align:center;font-size:14px;padding:5px';
+        previewFooter.textContent = '点击图片空白处关闭预览';
+        
+        previewContainer.appendChild(previewHeader);
+        previewContainer.appendChild(img);
+        previewContainer.appendChild(previewFooter);
+        document.body.appendChild(previewContainer);
+        
+        // 添加保存按钮点击事件
+        previewHeader.querySelector('button').onclick = function() {
+            const saveLink = document.createElement('a');
+            saveLink.href = url;
+            saveLink.download = filename;
+            saveLink.click();
+            alert('已尝试保存图片，请在相册中查看');
+        };
         return;
     }
 
