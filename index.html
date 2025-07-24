@@ -1521,7 +1521,7 @@ function deleteHistoryItem(index) {
                 openWeChatImagePreview(url);
         // 添加微信保存提示
         setTimeout(() => {
-            alert('请长按图片选择"保存图片"到相册');
+            alert('请长按图片选择"保存图片"到相册\n\n若保存失败，请：\n1. 检查手机存储空间是否充足\n2. 确保微信有存储权限\n3. 更新微信到最新版本');
         }, 500);
     } catch (e) {
         console.error('微信图片处理失败:', e);
