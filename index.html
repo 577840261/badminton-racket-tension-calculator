@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>羽毛球拍磅数影响计算器</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            max-width: 800px;
+            margin: 20px auto;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 700;
+            font-size: 26px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #edf2f7;
+        }
+        .input-section {
+            margin: 20px 0;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+                margin: 10px auto;
+                border-radius: 12px;
+            }
+            
+            h1 {
+                font-size: 22px;
+                padding-bottom: 10px;
+            }
+            
+            .input-section {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .input-icon input,
+            .input-icon select {
+                height: 44px;
+                font-size: 14px;
+            }
+            
+            button {
+                padding: 12px 20px;
+                font-size: 15px;
+            }
+            
+            .result-section {
+                padding: 15px;
+            }
+            
+            .comparison {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .comparison-card {
+                width: 100%;
+                padding: 15px;
+            }
+            
+            .history-section {
+                padding: 15px;
+            }
+        }
+
+        @media (min-width: 601px) and (max-width: 767px) {
+            .container {
+                padding: 20px;
+                margin: 15px auto;
+            }
+            
+            .input-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .input-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (min-width: 1025px) {
+            .input-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .container {
+                max-width: 900px;
+            }
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .input-icon {
+            position: relative;
+        }
+
+        .input-icon input,
+        .input-icon select {
+            width: 100%;
+            padding: 12px 15px;
+            height: 48px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .input-icon i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #718096;
+            font-size: 18px;
+        }
+
+        .calculate-btn-container {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #4a5568;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        }
+
+        .input-group:focus-within label {
+            color: #4299e1;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 15px;
+        }
+        input:focus, select:focus {
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+            outline: none;
+        }
+        button {
+            background-color: #4299e1;
+            background-image: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            color: white;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(66, 153, 225, 0.3);
+            width: 100%;
+            max-width: 320px;
+        }
+        button:hover {
+            background-color: #3182ce;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+        }
+        button:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .result-section {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 12px;
+            background-color: #ffffff; /* 将浅灰背景改为纯白色，增强对比度 */
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); /* 增强阴影，提升立体感 */
+            color: #222222; /* 加深文本颜色 */
+            font-weight: 500; /* 增加字体权重 */
+        }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #111111; /* 进一步加深标题颜色 */
+            text-shadow: 0.5px 0.5px 1px rgba(0,0,0,0.1); /* 添加轻微文字阴影增强清晰度 */
+        }
+
+        /* 为温馨提示和推荐穿线方法添加明确颜色 */
+        .result-section div[style*="background-color: #fff3e0"],
+        .result-section div[style*="background-color: #e8f5e9"] {
+            color: #2d2d2d;
+            font-weight: 500;
+            font-size: 15px;
+        }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .comparison {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            gap: 15px;
+            flex-wrap: wrap; /* 允许卡片换行 */
+        }
+
+        .comparison-card {
+            text-align: center;
+            padding: 20px;
+            flex: 1 0 250px; /* 弹性布局，最小宽度250px */
+            border-radius: 10px;
+            transition: transform 0.2s ease;
+            box-sizing: border-box; /* 确保padding不影响宽度计算 */
+        }
+
+        /* 添加媒体查询，优化小屏显示 */
+        @media (max-width: 600px) {
+            .comparison-card {
+                flex: 1 0 100%; /* 小屏幕下卡片占满宽度 */
+                margin-bottom: 15px;
+            }
+            
+            /* 调整小屏幕下的内边距 */
+            .result-section {
+                padding: 15px;
+            }
+            
+            /* 调整标题大小 */
+            .result-title {
+                font-size: 16px;
+            }
+        }
+        .comparison-card:hover {
+            transform: translateY(-3px);
+        }
+        .smash-card {
+            background-color: #ffebee;
+            border: 1px solid #e57373;
+        }
+        .control-card {
+            background-color: #e3f2fd;
+            border: 1px solid #64b5f6;
+        }
+        .history-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #fff8e1;
+            border-radius: 12px;
+            border: 1px solid #ffe082;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .history-item {
+            padding: 12px 15px;
+            border-bottom: 1px dashed #ffe082;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            background-color: rgba(255,255,255,0.5);
+            transition: background-color 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-item:hover {
+            background-color: rgba(255,255,255,0.8);
+        }
+        .delete-btn {
+            background-color: #f56565;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            padding: 6px 12px;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+        .delete-btn:hover {
+            background-color: #e53e3e;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .clear-all-btn {
+            background-color: #ed8936;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            padding: 6px 12px;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+        .clear-all-btn:hover {
+            background-color: #dd6b20;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .knowledge-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f1f8e9;
+            border-radius: 5px;
+            border: 1px solid #aed581;
+        }
+        .knowledge-panel h3 {
+            margin-top: 0;
+            color: #558b2f;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>羽毛球拍磅数影响计算器</h1>
+        <div class="input-section">
+            <div class="input-group input-icon">
+                <label for="weight">体重 (kg)</label>
+                <input type="number" id="weight" min="30" max="150" placeholder="请输入您的体重">
+            </div>
+
+            <div class="input-group input-icon">
+                <label for="height">身高 (cm)</label>
+                <input type="number" id="height" min="120" max="220" placeholder="请输入您的身高">
+            </div>
+
+            <div class="input-group input-icon">
+                <label for="skillLevel">技术水平</label>
+                <select id="skillLevel">
+                        <option value="beginner">新手 (技术入门，建议低磅数)</option>
+                        <option value="intermediate" selected>中级 (技术熟练，建议中磅数)</option>
+                        <option value="advanced">高级 (技术精湛，建议高磅数)</option>
+                    </select>
+            </div>
+
+            <div class="input-group input-icon">
+                <label for="strength">力量级别</label>
+                <select id="strength">
+                        <option value="low">初级 (力量较小)</option>
+                        <option value="medium" selected>中级 (力量适中)</option>
+                        <option value="high">高级 (力量较大)</option>
+                    </select>
+            </div>
+
+            <div class="input-group input-icon">
+                <label for="playStyle">击球风格</label>
+                <select id="playStyle">
+                        <option value="offensive">进攻型 (杀球为主)</option>
+                        <option value="defensive">防守型 (控球为主)</option>
+                        <option value="balanced" selected>平衡型 (攻守兼备)</option>
+                    </select>
+            </div>
+
+            <div class="calculate-btn-container">
+                <button onclick="calculatePounds()">计算推荐磅数</button>
+            </div>
+
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <div class="result-title">推荐磅数范围: <span id="poundRange"></span></div>
+            <div class="result-title">杀球速度增幅: <span id="smashIncrease"></span></div>
+            <div style="margin-top: 15px; padding: 10px; background-color: #fff3e0; border-left: 4px solid #ff9800; font-size: 14px;">
+                <strong>温馨提示:</strong> 本计算器提供的数据仅供参考，实际磅数选择应结合个人技术水平、击球习惯和实际体验进行调整。初次使用建议选择推荐范围的中间值，并逐步调整至最适合自己的磅数。
+            </div>
+
+            <div style="margin-top: 15px; padding: 15px; background-color: #e8f5e9; border-radius: 8px; border-left: 4px solid #4caf50;">
+                <h3 style="margin-top: 0; color: #2e7d32; font-size: 16px;">推荐穿线方法</h3>
+                <p id="stringingAdvice" style="margin-bottom: 0;">根据您的磅数和技术水平，建议采用四结穿线法，确保磅数稳定和线床均匀。</p>
+            </div>
+
+            <div class="comparison">
+                <div class="comparison-card smash-card">
+                    <h3>杀球效果</h3>
+                    <p id="smashEffect"></p>
+                </div>
+                <div class="comparison-card control-card">
+                    <h3>控球效果</h3>
+                    <p id="controlEffect"></p>
+                </div>
+            </div>
+            <div style="margin-top: 15px; text-align: center;">
+                <button onclick="shareResult()" style="width: auto; display: inline-block; margin-right: 10px; background-color: #2196F3; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">分享结果</button>
+                <!-- 移除保存为图片按钮 -->
+            </div>
+        </div>
+
+        <div class="chart-section" style="margin-top: 20px;">
+            <canvas id="performanceChart"></canvas>
+        </div>
+        
+        <div class="knowledge-panel">
+            <h3>磅数知识</h3>
+            <p><strong>高磅数 (26-30磅):</strong> 线床较紧，控球精准，杀球速度快，但需要更大力量</p>
+            <p><strong>中磅数 (23-25磅):</strong> 平衡性能，适合大多数中级选手</p>
+            <p><strong>低磅数 (19-22磅):</strong> 线床弹性好，容易打远，但控球较差</p>
+        </div>
+
+        <div class="history-section">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>计算历史</h3>
+                <button class="clear-all-btn" onclick="clearAllHistory()">清空全部</button>
+            </div>
+            <div class="history-list" id="historyList"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // 页面加载时显示历史记录
+        window.onload = function() {
+            displayHistory();
+            initChart();
+        };
+        
+        let performanceChart;
+        
+        function initChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            performanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30'],
+                    datasets: [{
+                        label: '杀球速度',
+                        data: [65, 68, 71, 74, 77, 80, 83, 86, 89, 92, 94, 95],
+                        borderColor: '#e57373',
+                        backgroundColor: 'rgba(229, 115, 115, 0.1)',
+                        tension: 0.3
+                    }, {
+                        label: '控球精度',
+                        data: [95, 93, 90, 87, 84, 80, 76, 72, 68, 64, 60, 55],
+                        borderColor: '#64b5f6',
+                        backgroundColor: 'rgba(100, 181, 246, 0.1)',
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 50,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: '性能评分'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '磅数'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function calculatePounds() {
+            const weight = parseFloat(document.getElementById('weight').value);
+    const height = parseFloat(document.getElementById('height').value);
+    const skillLevel = document.getElementById('skillLevel').value;
+    const strength = document.getElementById('strength').value;
+    const playStyle = document.getElementById('playStyle').value;
+    const resultSection = document.getElementById('resultSection');
+    const poundRange = document.getElementById('poundRange');
+    const smashIncrease = document.getElementById('smashIncrease');
+    const smashEffect = document.getElementById('smashEffect');
+    const controlEffect = document.getElementById('controlEffect');
+    const weightInput = document.getElementById('weight');
+
+            // 增强输入验证
+    if (isNaN(weight) || weight < 30 || weight > 150 || isNaN(height) || height < 120 || height > 220) {
+        // 高亮显示无效输入
+        if (isNaN(weight) || weight < 30 || weight > 150) {
+            weightInput.style.border = '2px solid #e57373';
+        }
+        if (isNaN(height) || height < 120 || height > 220) {
+            document.getElementById('height').style.border = '2px solid #e57373';
+        }
+        setTimeout(() => {
+            weightInput.style.border = '1px solid #ddd';
+            document.getElementById('height').style.border = '1px solid #ddd';
+        }, 2000);
+        return;
+    }
+
+            // 基础磅数推荐逻辑 - 整合身高因素
+            const bmi = weight / ((height / 100) ** 2); // 计算BMI
+            let baseMin, baseMax, increase;
+
+            // 根据BMI和体重综合计算基础磅数
+            if (bmi >= 18.5 && bmi <= 24.9) {
+                // 正常BMI范围
+                if (weight >= 60 && weight <= 70) {
+                    baseMin = 24;
+                    baseMax = 26;
+                    increase = "12%";
+                } else if (weight < 60) {
+                    baseMin = 22;
+                    baseMax = 24;
+                    increase = "10%";
+                } else { // weight > 70
+                    baseMin = 26;
+                    baseMax = 28;
+                    increase = "14%";
+                }
+            } else if (bmi < 18.5) {
+                // 较低BMI，适当降低基础磅数
+                if (weight < 60) {
+                    baseMin = 21;
+                    baseMax = 23;
+                    increase = "9%";
+                } else {
+                    baseMin = 23;
+                    baseMax = 25;
+                    increase = "11%";
+                }
+            } else { // bmi > 24.9
+                // 较高BMI，适当提高基础磅数
+                baseMin = 25;
+                baseMax = 27;
+                increase = "13%";
+            }
+
+            // 根据技术水平调整
+            if (skillLevel === 'beginner') {
+                baseMin -= 2;
+                baseMax -= 1;
+            } else if (skillLevel === 'advanced') {
+                baseMin += 1;
+                baseMax += 2;
+            }
+
+            // 根据力量级别调整
+            if (strength === 'low') {
+                baseMin -= 1;
+                baseMax -= 1;
+            } else if (strength === 'high') {
+                baseMin += 1;
+                baseMax += 1;
+            }
+
+            // 根据击球风格调整
+            if (playStyle === 'offensive') {
+                baseMin += 1;
+                baseMax += 1;
+                increase = (parseInt(increase) + 2) + '%';
+            } else if (playStyle === 'defensive') {
+                baseMin -= 1;
+                baseMax -= 1;
+            }
+
+            // 设置结果
+            poundRange.textContent = `${baseMin}-${baseMax} 磅`;
+            smashIncrease.textContent = `+${increase}`;
+
+            // 设置效果描述
+            if (baseMin >= 26) {
+                smashEffect.textContent = "优秀 (高磅数提供更快的杀球速度)";
+                controlEffect.textContent = "中等 (需要更多力量控制球路)";
+                
+                if (skillLevel === 'advanced' && strength === 'high') {
+                    stringingAdvice.textContent = "专业级推荐：四结穿线法+预拉15%，竖线28-30磅，横线30-32磅的错磅穿线，提升线床稳定性和击球反馈。建议使用硬线如聚酯线，提高耐打性。";
+                } else if (skillLevel === 'intermediate' && strength === 'medium') {
+                    stringingAdvice.textContent = "进阶级推荐：四结穿线法+预拉10%，竖线比横线高1磅的错磅穿线，平衡线床张力与弹性。建议使用复合线，兼顾控制与耐用。";
+                } else {
+                    stringingAdvice.textContent = "高磅基础方案：标准四结穿线法，预拉8%，线床磅数均匀分布。建议逐步适应高磅数，初次尝试选择范围下限值。";
+                }
+            } else if (baseMin <= 23) {
+                smashEffect.textContent = "中等 (低磅数杀球速度适中)";
+                controlEffect.textContent = "优秀 (更容易控制球路和落点)";
+                
+                if (skillLevel === 'beginner') {
+                    stringingAdvice.textContent = "新手入门方案：两结穿线法，无需预拉，推荐尼龙线或复合线，磅数选择范围中间值，减少手臂负担。";
+                } else if (playStyle === 'defensive') {
+                    stringingAdvice.textContent = "防守型推荐：两结穿线法，竖线比横线低1磅，增加线床弹性和持球感，适合控球型打法。建议使用高弹性线。";
+                } else {
+                    stringingAdvice.textContent = "低磅通用方案：标准两结穿线法，线床磅数均匀，推荐多股线，提升击球舒适度和弹性反馈。";
+                }
+            } else {
+                smashEffect.textContent = "良好 (平衡的杀球速度)";
+                controlEffect.textContent = "良好 (平衡的控球能力)";
+                
+                // 中磅数细分场景推荐
+                if (skillLevel === 'advanced' && playStyle === 'offensive') {
+                    stringingAdvice.textContent = "高级进攻方案：四结穿线法，竖线26-27磅，横线27-28磅错磅穿线，预拉10%，提升杀球爆发力。建议使用聚酯线。";
+                } else if (skillLevel === 'intermediate' && strength === 'medium') {
+                    stringingAdvice.textContent = "中级平衡方案：四结穿线法，竖线横线同磅，预拉5%，适合大多数中级选手。建议使用复合线，兼顾各项性能。";
+                } else if (strength === 'low' && playStyle === 'balanced') {
+                    stringingAdvice.textContent = "力量优化方案：四结穿线法，竖线比横线低1磅，减少击球力量需求，提升控球稳定性。建议使用高弹性线。";
+                } else {
+                    stringingAdvice.textContent = "中磅通用方案：标准四结穿线法，磅数选择范围中间值，预拉5%，适合技术全面的选手。";
+                }
+            }
+
+            // 显示结果区域
+            resultSection.style.display = 'block';
+
+            // 保存历史记录
+            saveHistory(weight, height, skillLevel, strength, playStyle, `${baseMin}-${baseMax} 磅`);
+        }
+
+        // 保存历史记录到localStorage
+        function saveHistory(weight, height, skillLevel, strength, playStyle, poundRange) {
+            // 获取力量级别文本
+            const strengthText = document.getElementById('strength').options[
+                document.getElementById('strength').selectedIndex
+            ].text;
+
+            // 获取击球风格文本
+            const playStyleText = document.getElementById('playStyle').options[
+                document.getElementById('playStyle').selectedIndex
+            ].text;
+
+            // 获取技术水平文本
+            const skillLevelText = document.getElementById('skillLevel').options[
+                document.getElementById('skillLevel').selectedIndex
+            ].text;
+
+            // 获取身高值
+            const heightValue = document.getElementById('height').value + 'cm';
+
+            const history = JSON.parse(localStorage.getItem('badmintonHistory') || '[]');
+            history.push({
+                date: new Date().toLocaleString(),
+                weight: weight + 'kg',
+                height: heightValue,
+                skillLevel: skillLevelText,
+                strength: strengthText,
+                playStyle: playStyleText,
+                poundRange: poundRange
+            });
+
+            // 只保留最近10条记录
+            if (history.length > 10) history.shift();
+
+            localStorage.setItem('badmintonHistory', JSON.stringify(history));
+            displayHistory();
+        }
+
+        // 显示历史记录
+        function displayHistory() {
+            const historyList = document.getElementById('historyList');
+            const history = JSON.parse(localStorage.getItem('badmintonHistory') || '[]');
+
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="history-item">暂无历史记录</div>';
+                return;
+            }
+
+            historyList.innerHTML = '';
+            history.forEach((item, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div>
+                        <strong>${item.date}</strong><br>
+                        体重: ${item.weight}, 身高: ${item.height}, 技术: ${item.skillLevel}<br>
+                        力量: ${item.strength}, 风格: ${item.playStyle}<br>
+                        推荐磅数: ${item.poundRange}
+                    </div>
+                    <button class="delete-btn" onclick="deleteHistoryItem(${index})">删除</button>
+                `;
+                historyList.appendChild(historyItem);
+            });
+        }
+
+        function getPersonalRecommendation() {
+            const history = JSON.parse(localStorage.getItem('badmintonHistory') || '[]');
+            if (history.length >= 3) {
+                // 分析历史记录，找出用户偏好
+                const preference = analyzeHistory(history);
+                return `根据您的使用记录，我们发现您偏好 ${preference} 范围的磅数。`;
+            }
+            return null;
+        }
+
+        // 删除单条历史记录
+        function deleteHistoryItem(index) {
+            const history = JSON.parse(localStorage.getItem('badmintonHistory') || '[]');
+            history.splice(index, 1); // 移除指定索引的记录
+            localStorage.setItem('badmintonHistory', JSON.stringify(history));
+            displayHistory(); // 重新渲染历史记录
+        }
+
+        // 清空所有历史记录
+        function clearAllHistory() {
+            if (confirm('确定要清空所有计算历史吗？此操作不可恢复。')) {
+                localStorage.removeItem('badmintonHistory');
+                displayHistory();
+            }
+        }
+
+        // 添加分享功能核心实现
+        function shareResult() {
+            const poundRange = document.getElementById('poundRange').textContent;
+            const smashEffect = document.getElementById('smashEffect').textContent;
+            const controlEffect = document.getElementById('controlEffect').textContent;
+            const smashIncrease = document.getElementById('smashIncrease').textContent;
+            
+            // 构建包含关键指标的分享文本
+            const text = `我的羽毛球拍磅数推荐为${poundRange}，杀球速度增幅${smashIncrease}。杀球效果：${smashEffect}，控球效果：${controlEffect}。点击查看详细分析。`;
+            
+            // 检查浏览器是否支持Web Share API
+            if (navigator.share) {
+                navigator.share({
+                    title: '羽毛球拍磅数推荐',
+                    text: text,
+                    url: window.location.href
+                }).catch(error => {
+                    console.error('Web Share API 分享失败:', error);
+                    shareWithImageFallback(text); // 失败时使用备选方案
+                });
+            } else {
+                // 不支持Web Share API时直接使用图片分享备选方案
+                shareWithImageFallback(text);
+            }
+        }
+
+        // 图片分享备选方案
+        function shareWithImageFallback(text) {
+            html2canvas(document.getElementById('resultSection'), {
+                scale: 2,
+                useCORS: true,
+                logging: false
+            }).then(canvas => {
+                // 将canvas转换为Blob
+                canvas.toBlob(blob => {
+                    // 创建一个临时链接
+                    const blobUrl = URL.createObjectURL(blob);
+                    
+                    // 创建分享提示框
+                    const shareDiv = document.createElement('div');
+                    shareDiv.id = 'shareModal'; // 添加唯一ID
+                    shareDiv.style.position = 'fixed';
+                    shareDiv.style.top = '50%';
+                    shareDiv.style.left = '50%';
+                    shareDiv.style.transform = 'translate(-50%, -50%)';
+                    shareDiv.style.backgroundColor = 'white';
+                    shareDiv.style.padding = '20px';
+                    shareDiv.style.borderRadius = '10px';
+                    shareDiv.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
+                    shareDiv.style.zIndex = '1000';
+                    
+                    shareDiv.innerHTML = `
+                        <h3 style="margin-top: 0;">分享结果</h3>
+                        <p>${text}</p>
+                        <img src="${blobUrl}" style="max-width: 100%; border-radius: 8px; margin: 10px 0;">
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button onclick="downloadImage('${blobUrl}', 'badminton_pound_result.png')" style="flex: 1; background-color: #4CAF50; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">保存图片</button>
+                            <button onclick="copyShareLink()" style="flex: 1; background-color: #2196F3; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">复制链接</button>
+                            <button onclick="document.getElementById('shareModal').remove()" style="flex: 1; background-color: #f44336; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">关闭</button>
+                        </div>
+                    `;
+                    document.body.appendChild(shareDiv);
+                });
+            });
+        }
+        
+        // 添加全局状态标志，防止重复点击
+        let isSavingImage = false;
+        
+        function saveAsImage() {
+        // 检查是否正在保存中，如果是则阻止重复点击
+        if (isSavingImage) {
+        alert('图片正在生成中，请稍候...');
+        return;
+        }
+        
+        const resultSection = document.getElementById('resultSection');
+        const poundRange = document.getElementById('poundRange').textContent;
+        
+        // 检查结果区域是否显示
+        if (resultSection.style.display === 'none') {
+        alert('请先计算磅数，再保存结果图片');
+        return;
+        }
+        
+        // 设置状态为正在保存
+        isSavingImage = true;
+        
+        // 创建结果区域的克隆，用于图片生成
+        const clonedSection = resultSection.cloneNode(true);
+        // 移除克隆中的按钮区域
+        const buttonContainer = clonedSection.querySelector('div[style*="margin-top: 15px; text-align: center;"]');
+        if (buttonContainer) {
+        buttonContainer.remove();
+        }
+        
+        // 调整克隆区域的样式，限制宽度并减少空白
+        clonedSection.style.padding = '15px';
+        clonedSection.style.margin = '0 auto';
+        clonedSection.style.boxShadow = 'none';
+        clonedSection.style.width = 'auto';
+        clonedSection.style.maxWidth = '500px';
+        clonedSection.style.display = 'block';
+        clonedSection.style.overflow = 'hidden';
+        
+        // 调整比较卡片布局
+        const comparisonCards = clonedSection.querySelectorAll('.comparison-card');
+        comparisonCards.forEach(card => {
+        card.style.width = '48%';
+        card.style.boxSizing = 'border-box';
+        });
+        
+        // 将克隆元素添加到文档中（但不可见）
+        clonedSection.style.position = 'absolute';
+        clonedSection.style.top = '-9999px';
+        clonedSection.style.left = '-9999px';
+        document.body.appendChild(clonedSection);
+        
+        // 使用html2canvas将调整后的克隆区域转换为图片
+        html2canvas(clonedSection, {
+        scale: 4,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        letterRendering: true,
+        scrollY: -window.scrollY,
+        windowWidth: clonedSection.offsetWidth,
+        windowHeight: clonedSection.offsetHeight,
+        dpi: 300,
+        backgroundColor: null,
+        imageTimeout: 15000,
+        x: 0,
+        y: 0,
+        width: clonedSection.offsetWidth,
+        height: clonedSection.offsetHeight
+        }).then(canvas => {
+        // 清理克隆元素
+        document.body.removeChild(clonedSection);
+        
+        if(canvas.width < 200 || canvas.height < 200) {
+        throw new Error('截图尺寸异常: ' + canvas.width + 'x' + canvas.height);
+        }
+        
+        const link = document.createElement('a');
+        const cleanPoundRange = poundRange.replace(/[^0-9-]/g, '');
+        link.download = `羽毛球拍磅数推荐_${cleanPoundRange || '未知'}.png`;
+        link.href = canvas.toDataURL('image/png');
+        
+        if(link.href.startsWith('data:image/png')) {
+        link.click();
+        } else {
+        throw new Error('生成的图片数据无效');
+        }
+        }).catch(error => {
+        if(clonedSection && clonedSection.parentNode) {
+        document.body.removeChild(clonedSection);
+        }
+        console.error('保存图片失败:', error);
+        alert('保存图片失败: ' + error.message);
+        }).finally(() => {
+        // 无论成功失败，都重置状态标志
+        isSavingImage = false;
+        });
+        }
+        
+        function downloadImage(url, filename) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+        }
+    </script>
+</body>
+</html>
