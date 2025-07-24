@@ -680,33 +680,6 @@
             displayHistory();
         }
 
-        // 显示历史记录
-        function displayHistory() {
-            const historyList = document.getElementById('historyList');
-            const history = JSON.parse(localStorage.getItem('badmintonHistory') || '[]');
-
-            if (history.length === 0) {
-                historyList.innerHTML = '<div class="history-item">暂无历史记录</div>';
-                return;
-            }
-
-            historyList.innerHTML = '';
-            history.forEach((item, index) => {
-                const historyItem = document.createElement('div');
-                historyItem.className = 'history-item';
-                historyItem.innerHTML = `
-                    <div>
-                        <strong>${item.date}</strong><br>
-                        体重: ${item.weight}, 身高: ${item.height}, 技术: ${item.skillLevel}<br>
-                        力量: ${item.strength}, 风格: ${item.playStyle}<br>
-                        推荐磅数: ${item.poundRange}
-                    </div>
-                    <button class="delete-btn" onclick="deleteHistoryItem(${index})">删除</button>
-                `;
-                historyList.appendChild(historyItem);
-            });
-        }
-
         function getPersonalRecommendation() {
             const history = JSON.parse(localStorage.getItem('badmintonHistory') || '[]');
             if (history.length >= 3) {
