@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>羽毛球拍磅数影响计算器</title>
+    <meta name="x5-page-mode" content="app"> <!-- QQ浏览器应用模式 -->
+    <meta name="browsermode" content="application"> <!-- 微信浏览器应用模式 -->
+    <meta name="theme-color" content="#4CAF50">
+    <title>羽毛球拍磅数计算器</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         body {
@@ -15,14 +18,16 @@
             color: #333;
         }
         .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            overflow: hidden;
-            max-width: 800px;
-            margin: 20px auto;
-        }
+    background-color: white;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    max-width: 100%; /* 修改为100%以适应移动屏幕 */
+    margin: 20px auto;
+    width: 100%; /* 添加宽度100%确保占满可用空间 */
+    box-sizing: border-box; /* 添加盒模型计算方式 */
+}
         h1 {
             color: #2c3e50;
             text-align: center;
@@ -69,6 +74,7 @@
             
             .result-section {
                 padding: 15px;
+                word-wrap: break-word; /* 防止长单词溢出 */
             }
             
             .comparison {
@@ -78,11 +84,21 @@
             
             .comparison-card {
                 width: 100%;
-                padding: 15px;
+                padding: 12px;
             }
             
             .history-section {
-                padding: 15px;
+                padding: 10px;
+            }
+            
+            .history-item {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            .knowledge-panel {
+                font-size: 13px;
+                padding: 10px;
             }
         }
 
@@ -347,6 +363,20 @@
             color: #558b2f;
         }
 
+        .chart-section {
+            margin-top: 20px;
+            width: 100%; /* 确保容器宽度100% */
+            overflow-x: auto; /* 允许水平滚动 */
+            padding: 5px 0;
+            box-sizing: border-box;
+        }
+
+        #performanceChart {
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+        }
+
     </style>
 </head>
 <body>
@@ -424,9 +454,9 @@
             </div>
         </div>
 
-        <div class="chart-section" style="margin-top: 20px;">
-            <canvas id="performanceChart"></canvas>
-        </div>
+        <div class="chart-section">
+    <canvas id="performanceChart"></canvas>
+</div>
         
         <div class="knowledge-panel">
             <h3>磅数知识</h3>
@@ -476,6 +506,7 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false, /* 添加此项以允许自定义宽高比 */
                     scales: {
                         y: {
                             beginAtZero: false,
@@ -483,14 +514,50 @@
                             max: 100,
                             title: {
                                 display: true,
-                                text: '性能评分'
+                                text: '性能评分',
+                                font: {
+                                    size: 12 /* 减小字体大小 */
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10 /* 减小刻度字体 */
+                                }
                             }
                         },
                         x: {
                             title: {
                                 display: true,
-                                text: '磅数'
+                                text: '磅数',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10
+                                }
                             }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                font: {
+                                    size: 11 /* 减小图例字体 */
+                                }
+                            }
+                        }
+                    },
+                    // 添加屏幕尺寸检测，动态调整图表高度
+                    onResize: function(chart) {
+                        const screenWidth = window.innerWidth;
+                        if (screenWidth < 600) {
+                            chart.options.plugins.legend.position = 'bottom';
+                            chart.options.layout.padding = 10;
+                        } else {
+                            chart.options.plugins.legend.position = 'top';
+                            chart.options.layout.padding = 20;
                         }
                     }
                 }
@@ -680,6 +747,33 @@
             displayHistory();
         }
 
+        // 显示历史记录
+        function displayHistory() {
+            const historyList = document.getElementById('historyList');
+            const history = JSON.parse(localStorage.getItem('badmintonHistory') || '[]');
+
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="history-item">暂无历史记录</div>';
+                return;
+            }
+
+            historyList.innerHTML = '';
+            history.forEach((item, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div>
+                        <strong>${item.date}</strong><br>
+                        体重: ${item.weight}, 身高: ${item.height}, 技术: ${item.skillLevel}<br>
+                        力量: ${item.strength}, 风格: ${item.playStyle}<br>
+                        推荐磅数: ${item.poundRange}
+                    </div>
+                    <button class="delete-btn" onclick="deleteHistoryItem(${index})">删除</button>
+                `;
+                historyList.appendChild(historyItem);
+            });
+        }
+
         function getPersonalRecommendation() {
             const history = JSON.parse(localStorage.getItem('badmintonHistory') || '[]');
             if (history.length >= 3) {
@@ -715,9 +809,35 @@
             
             // 构建包含关键指标的分享文本
             const text = `我的羽毛球拍磅数推荐为${poundRange}，杀球速度增幅${smashIncrease}。杀球效果：${smashEffect}，控球效果：${controlEffect}。点击查看详细分析。`;
-            
-            // 检查浏览器是否支持Web Share API
-            if (navigator.share) {
+    
+    // 添加浏览器兼容性提示
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isWeChat = userAgent.includes('micromessenger');
+    const isQQ = userAgent.includes('qq/');
+
+    if (isWeChat || isQQ) {
+        const shareTips = document.createElement('div');
+        shareTips.style.position = 'fixed';
+        shareTips.style.bottom = '20px';
+        shareTips.style.left = '50%';
+        shareTips.style.transform = 'translateX(-50%)';
+        shareTips.style.backgroundColor = 'rgba(0,0,0,0.7)';
+        shareTips.style.color = 'white';
+        shareTips.style.padding = '10px 15px';
+        shareTips.style.borderRadius = '4px';
+        shareTips.style.zIndex = '1000';
+        shareTips.textContent = isWeChat ? '微信内支持长按图片保存' : 'QQ内支持长按图片保存';
+        document.body.appendChild(shareTips);
+
+        setTimeout(() => {
+            shareTips.style.opacity = '0';
+            shareTips.style.transition = 'opacity 0.5s';
+            setTimeout(() => shareTips.remove(), 500);
+        }, 3000);
+    }
+
+    // 检查浏览器是否支持Web Share API
+    if (navigator.share) {
                 navigator.share({
                     title: '羽毛球拍磅数推荐',
                     text: text,
@@ -734,6 +854,17 @@
 
         // 图片分享备选方案
         function shareWithImageFallback(text) {
+            // 移除可能存在的旧弹窗
+            const existingModal = document.getElementById('shareModal');
+            if (existingModal) {
+                // 释放之前的临时URL
+                const existingImg = existingModal.querySelector('img');
+                if (existingImg && existingImg.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(existingImg.src);
+                }
+                existingModal.remove();
+            }
+            
             html2canvas(document.getElementById('resultSection'), {
                 scale: 2,
                 useCORS: true,
@@ -764,7 +895,7 @@
                         <div style="display: flex; gap: 10px; margin-top: 15px;">
                             <button onclick="downloadImage('${blobUrl}', 'badminton_pound_result.png')" style="flex: 1; background-color: #4CAF50; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">保存图片</button>
                             <button onclick="copyShareLink()" style="flex: 1; background-color: #2196F3; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">复制链接</button>
-                            <button onclick="document.getElementById('shareModal').remove()" style="flex: 1; background-color: #f44336; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">关闭</button>
+                            <button onclick="closeShareModal('${blobUrl}')" style="flex: 1; background-color: #f44336; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">关闭</button>
                         </div>
                     `;
                     document.body.appendChild(shareDiv);
@@ -772,7 +903,100 @@
             });
         }
         
-        // 添加全局状态标志，防止重复点击
+        // 添加专门的关闭模态框函数，负责资源清理
+        function closeShareModal(blobUrl) {
+            const modal = document.getElementById('shareModal');
+            if (modal) {
+                modal.remove();
+            }
+            // 释放临时URL资源
+            if (blobUrl && blobUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(blobUrl);
+            }
+        }
+
+        // 复制链接功能实现
+        function copyShareLink() {
+            // 获取当前页面URL
+            const url = window.location.href;
+            
+            // 使用Clipboard API复制链接
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url)
+                    .then(() => {
+                        showCopySuccessToast();
+                    })
+                    .catch(err => {
+                        console.error('Clipboard API复制失败:', err);
+                        fallbackCopyTextToClipboard(url);
+                    });
+            } else {
+                // 不支持Clipboard API时使用传统方法
+                fallbackCopyTextToClipboard(url);
+            }
+        }
+
+        // 传统复制方法（兼容旧浏览器）
+        function fallbackCopyTextToClipboard(text) {
+            // 创建隐藏的文本区域
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            
+            // 选择并复制文本
+            textarea.select();
+            textarea.setSelectionRange(0, 99999);
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showCopySuccessToast();
+                } else {
+                    alert('复制失败，请手动复制URL: ' + text);
+                }
+            } catch (err) {
+                console.error('传统复制方法失败:', err);
+                alert('复制失败，请手动复制URL: ' + text);
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+
+        // 显示复制成功提示
+        function showCopySuccessToast() {
+            // 检查是否已有提示框
+            let toast = document.getElementById('copyToast');
+            if (toast) {
+                toast.remove();
+            }
+            
+            // 创建提示框
+            toast = document.createElement('div');
+            toast.id = 'copyToast';
+            toast.textContent = '链接已复制到剪贴板';
+            toast.style.position = 'fixed';
+            toast.style.bottom = '20px';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            toast.style.color = 'white';
+            toast.style.padding = '10px 20px';
+            toast.style.borderRadius = '4px';
+            toast.style.zIndex = '9999';
+            toast.style.transition = 'opacity 0.3s ease';
+            
+            document.body.appendChild(toast);
+            
+            // 3秒后自动移除提示
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
+        
+        // 全局状态标志，防止重复点击
         let isSavingImage = false;
         
         function saveAsImage() {
@@ -872,11 +1096,67 @@
         }
         
         function downloadImage(url, filename) {
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            link.click();
+    // 检测浏览器环境
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isWeChat = userAgent.includes('micromessenger');
+    const isQQ = userAgent.includes('qq/');
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+
+    // 微信内置浏览器特殊处理
+    if (isWeChat) {
+        try {
+            // 尝试使用微信图片预览API
+            if (typeof WeixinJSBridge !== 'undefined') {
+                WeixinJSBridge.invoke('imagePreview', {
+                    current: url,
+                    urls: [url]
+                });
+                setTimeout(() => {
+                    alert('请长按图片选择"保存图片"');
+                }, 500);
+                return;
+            }
+        } catch (e) {
+            console.error('微信图片预览失败:', e);
         }
+    }
+
+    // QQ浏览器特殊处理
+    if (isQQ && isMobile) {
+        // 创建隐藏的图片元素用于预览
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.position = 'fixed';
+        img.style.top = '0';
+        img.style.left = '0';
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'contain';
+        img.style.backgroundColor = 'white';
+        img.style.zIndex = '99999';
+        img.onclick = () => img.remove();
+        document.body.appendChild(img);
+        alert('点击图片可关闭预览\n请长按图片保存到相册');
+        return;
+    }
+
+    // 通用下载逻辑
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    // 针对移动设备添加额外点击触发
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // 移动端下载提示
+    if (isMobile) {
+        setTimeout(() => {
+            alert('图片已保存到相册\n若未找到，请在文件管理中查找Download文件夹');
+        }, 800);
+    }
+}
     </script>
 </body>
 </html>
