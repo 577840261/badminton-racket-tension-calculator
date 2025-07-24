@@ -6,6 +6,10 @@
     <meta name="x5-page-mode" content="app"> <!-- QQ浏览器应用模式 -->
     <meta name="browsermode" content="application"> <!-- 微信浏览器应用模式 -->
     <meta name="theme-color" content="#4CAF50">
+    <!-- 添加缓存控制meta标签 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>羽毛球拍磅数计算器</title>
     <!-- 添加加载状态样式 -->
     <style>
@@ -48,8 +52,8 @@
         }
     </style>
     <!-- 优化资源加载策略 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" async defer onload="handleChartLoad()" onerror="handleResourceError('Chart.js')"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js" async defer onload="handleHtml2CanvasLoad()" onerror="handleResourceError('html2canvas')"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js?v=4.4.8" async defer onload="handleChartLoad()" onerror="handleResourceError('Chart.js')"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js?v=1.4.1" async defer onload="handleHtml2CanvasLoad()" onerror="handleResourceError('html2canvas')"></script>
     <script>
         // 资源加载状态跟踪
         const resourceLoadState = {
@@ -58,21 +62,68 @@
             domContentLoaded: false
         };
         
+        // 添加加载进度更新
+        function updateLoadingProgress() {
+            const loadedCount = Object.values(resourceLoadState).filter(Boolean).length - 1; // 减去domContentLoaded
+            const totalCount = Object.keys(resourceLoadState).length - 1;
+            const progressElement = document.querySelector('.loading-progress');
+            if (progressElement) {
+                progressElement.textContent = `加载中: ${loadedCount}/${totalCount}`;
+            }
+        }
+        
+        // 添加资源加载超时控制
+        const RESOURCE_TIMEOUT = 15000; // 15秒超时
+        let timeoutTimer;
+        
+        // 初始化超时检查
+        function initTimeoutCheck() {
+            timeoutTimer = setTimeout(() => {
+                if (!resourceLoadState.chartjs || !resourceLoadState.html2canvas) {
+                    const missingResources = [];
+                    if (!resourceLoadState.chartjs) missingResources.push('Chart.js');
+                    if (!resourceLoadState.html2canvas) missingResources.push('html2canvas');
+                    showFatalError(`资源加载超时: ${missingResources.join(', ')}
+请检查网络后重试`);
+                }
+            }, RESOURCE_TIMEOUT);
+        }
+        
         // 资源加载完成处理函数
-        function handleChartLoad() { resourceLoadState.chartjs = true; checkAllResourcesLoaded(); }
-        function handleHtml2CanvasLoad() { resourceLoadState.html2canvas = true; checkAllResourcesLoaded(); }
+        function handleChartLoad() {
+            resourceLoadState.chartjs = true;
+            updateLoadingProgress();
+            checkAllResourcesLoaded();
+        }
+        function handleHtml2CanvasLoad() {
+            resourceLoadState.html2canvas = true;
+            updateLoadingProgress();
+            checkAllResourcesLoaded();
+        }
         
         // DOM加载完成
         document.addEventListener('DOMContentLoaded', function() {
             resourceLoadState.domContentLoaded = true;
+            initTimeoutCheck(); // 启动超时检查
             checkAllResourcesLoaded();
         });
         
         // 检查所有关键资源是否加载完成
         function checkAllResourcesLoaded() {
             if (resourceLoadState.chartjs && resourceLoadState.html2canvas && resourceLoadState.domContentLoaded) {
-                // 所有资源加载完成，初始化应用
-                initApplication();
+                // 清除超时计时器
+                clearTimeout(timeoutTimer);
+                
+                // 微信浏览器特殊处理
+                const isWeChat = navigator.userAgent.toLowerCase().includes('micromessenger');
+                if (isWeChat && typeof WeixinJSBridge !== 'undefined') {
+                    WeixinJSBridge.invoke('setBounceBackground', {'backgroundColor': '#ffffff'}, function() {
+                        initApplication(); // 在微信环境回调中初始化
+                    });
+                } else {
+                    // 正常初始化
+                    initApplication();
+                }
             }
         }
         
@@ -618,10 +669,11 @@
 <body>
     <!-- 添加加载遮罩 -->
     <div class="loading-overlay">
-        <div class="spinner"></div>
-        <div class="loading-text">加载中，请稍候...</div>
-        <div class="error-message"></div>
-    </div>
+            <div class="spinner"></div>
+            <div class="loading-text">正在加载资源...</div>
+            <div class="loading-progress" style="margin-top: 15px; font-size: 14px; color: #666;">加载中: 0/2</div>
+            <div class="error-message"></div>
+        </div>
     
     <div class="container">
         <h1>羽毛球拍磅数影响计算器</h1>
@@ -1467,11 +1519,15 @@ function deleteHistoryItem(index) {
                     return;
                 }
                 openWeChatImagePreview(url);
-            } catch (e) {
-                console.error('微信图片处理失败:', e);
-                // 微信环境下的备选方案
-                alert('微信保存失败，请点击右上角菜单选择"在浏览器中打开"后重试');
-            }
+        // 添加微信保存提示
+        setTimeout(() => {
+            alert('请长按图片选择"保存图片"到相册');
+        }, 500);
+    } catch (e) {
+        console.error('微信图片处理失败:', e);
+        // 微信环境下的备选方案
+        alert('微信保存失败，请点击右上角菜单选择"在浏览器中打开"后重试');
+    }
         }
 
     // QQ浏览器特殊处理
@@ -1500,12 +1556,23 @@ function deleteHistoryItem(index) {
         
         // 添加保存按钮点击事件
         previewHeader.querySelector('button').onclick = function() {
-            const saveLink = document.createElement('a');
-            saveLink.href = url;
-            saveLink.download = filename;
-            saveLink.click();
-            alert('已尝试保存图片，请在相册中查看');
-        };
+                // 使用blob URL确保兼容性
+                fetch(url)
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const blobUrl = URL.createObjectURL(blob);
+                        const saveLink = document.createElement('a');
+                        saveLink.href = blobUrl;
+                        saveLink.download = filename;
+                        saveLink.click();
+                        URL.revokeObjectURL(blobUrl);
+                        alert('图片已保存到相册\n若未找到，请在文件管理中查找QQDownload文件夹');
+                    })
+                    .catch(err => {
+                        console.error('QQ保存失败:', err);
+                        alert('保存失败，请长按预览图片选择"保存到手机"');
+                    });
+            };
         return;
     }
 
